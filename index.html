@@ -1940,8 +1940,7 @@
                     <!-- Option 1: Saisie manuelle -->
                     <div class="border border-slate-200 rounded-xl p-4">
                         <label class="block text-sm font-medium text-slate-700 mb-2">
-                            <i class="fas fa-keyboard ms-1 text-indigo-500"></i> {{ t('license_manual_entry') || 'Entrer
-                            la cle manuellement' }}
+                            <i class="fas fa-keyboard ms-1 text-indigo-500"></i> {{ t('license_manual_entry') || 'Entrer la cle manuellement' }}
                         </label>
                         <input v-model="licenseInput" type="text" :placeholder="t('license_placeholder')"
                             class="w-full px-4 py-3 border border-slate-300 rounded-lg text-center font-mono text-sm tracking-wider uppercase focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200" />
@@ -1961,8 +1960,7 @@
                     <!-- Option 2: Selection fichier .txt -->
                     <div class="border border-slate-200 rounded-xl p-4">
                         <label class="block text-sm font-medium text-slate-700 mb-2">
-                            <i class="fas fa-file-alt ms-1 text-purple-500"></i> {{ t('license_select_file') ||
-                            'Selectionner le fichier licence (.txt)' }}
+                            <i class="fas fa-file-alt ms-1 text-purple-500"></i> {{ t('license_select_file') || 'Selectionner le fichier licence (.txt)' }}
                         </label>
                         <label
                             class="block w-full px-4 py-3 bg-purple-50 border-2 border-dashed border-purple-200 rounded-lg text-center cursor-pointer hover:border-purple-400 hover:bg-purple-100 transition">
@@ -1970,13 +1968,11 @@
                             <span class="text-purple-700 font-medium">{{ t('browse') || 'Parcourir...' }}</span>
                             <input type="file" @change="importLicenseFile" accept=".txt" class="hidden">
                         </label>
-                        <p class="text-xs text-slate-400 mt-2 text-center">{{ t('license_file_hint') || 'Le fichier
-                            licence vous a ete envoye par email' }}</p>
+                        <p class="text-xs text-slate-400 mt-2 text-center">{{ t('license_file_hint') || 'Le fichier licence vous a ete envoye par email' }}</p>
                     </div>
 
                     <div v-if="licenseError" class="p-3 bg-red-50 border border-red-200 rounded-lg">
-                        <p class="text-sm text-red-600"><i class="fas fa-exclamation-triangle ms-1"></i> {{ licenseError
-                            }}</p>
+                        <p class="text-sm text-red-600"><i class="fas fa-exclamation-triangle ms-1"></i> {{ licenseError }}</p>
                     </div>
 
                     <button @click="cancelLicenseModal"
@@ -2996,12 +2992,29 @@
                                         encoding: window.Encoding.UTF8
                                     });
 
+                                    // Extraire le code base64 du fichier (peut etre formate avec instructions)
+                                    let licenseCode = null;
+                                    const lines = content.data.split('\n');
+                                    for (const line of lines) {
+                                        const trimmed = line.trim();
+                                        if (trimmed.startsWith('eyJ') && trimmed.length > 50) {
+                                            licenseCode = trimmed;
+                                            break;
+                                        }
+                                    }
+                                    // Fallback: si pas trouvé, essayer le contenu entier
+                                    if (!licenseCode && content.data.trim().startsWith('eyJ')) {
+                                        licenseCode = content.data.trim();
+                                    }
+
+                                    if (!licenseCode) continue; // Pas de code valide dans ce fichier
+
                                     // Verifier si c'est une licence valide
-                                    const isValid = await verifyLicenseContent(content.data);
+                                    const isValid = await verifyLicenseContent(licenseCode);
                                     if (isValid) {
                                         console.log(`✅ Licence valide trouvee: ${file.name}`);
                                         licenseFilePath.value = file.name;
-                                        return content.data;
+                                        return licenseCode;
                                     }
                                 } catch (readErr) {
                                     console.warn(`Impossible de lire ${file.name}:`, readErr);
@@ -3049,37 +3062,52 @@
 
                         try {
                             const content = await file.text();
-                            const trimmedContent = content.trim();
+
+                            // Extraire le code de licence du fichier
+                            // Le fichier peut contenir du texte formaté avec instructions
+                            // Le vrai code de licence est une chaîne base64 commençant par 'eyJ'
+                            let licenseCode = null;
+
+                            // Méthode 1: Chercher une ligne commençant par 'eyJ' (base64 JSON)
+                            const lines = content.split('\n');
+                            for (const line of lines) {
+                                const trimmed = line.trim();
+                                if (trimmed.startsWith('eyJ') && trimmed.length > 50) {
+                                    licenseCode = trimmed;
+                                    break;
+                                }
+                            }
+
+                            // Méthode 2: Si pas trouvé, essayer le contenu entier (fichier raw)
+                            if (!licenseCode) {
+                                const trimmedContent = content.trim();
+                                if (trimmedContent.startsWith('eyJ')) {
+                                    licenseCode = trimmedContent;
+                                }
+                            }
+
+                            if (!licenseCode) {
+                                console.error('Aucun code licence trouvé dans le fichier');
+                                licenseError.value = t('license_file_invalid') || 'Fichier licence invalide. Aucun code de licence trouvé.';
+                                event.target.value = '';
+                                return;
+                            }
+
+                            console.log('📄 Code licence extrait:', licenseCode.substring(0, 50) + '...');
 
                             // Verifier la validite de la licence
-                            const isValid = await verifyLicenseContent(trimmedContent);
+                            const isValid = await verifyLicenseContent(licenseCode);
 
                             if (isValid) {
-                                // Activer la licence
-                                await verifyLicense(trimmedContent);
+                                // Activer la licence (verifyLicense s'occupe aussi de la sauvegarde)
+                                await verifyLicense(licenseCode);
 
+                                // Feedback succès si la licence est maintenant valide
                                 if (isLicenseValid.value) {
-                                    // Copier le fichier vers sgc-teachertrack/
-                                    if (window.Capacitor?.isNativePlatform()) {
-                                        try {
-                                            await window.Filesystem.writeFile({
-                                                path: `sgc-teachertrack/${file.name}`,
-                                                data: trimmedContent,
-                                                directory: window.Directory.Documents,
-                                                encoding: window.Encoding.UTF8
-                                            });
-                                            licenseFilePath.value = file.name;
-                                            console.log(`📄 Fichier licence copie vers sgc-teachertrack/${file.name}`);
-                                        } catch (writeErr) {
-                                            console.warn('Erreur copie fichier licence:', writeErr);
-                                        }
-                                    } else {
-                                        // Desktop: sauvegarder dans localStorage
-                                        localStorage.setItem('teachertrack_license_v1', trimmedContent);
-                                    }
+                                    console.log('✅ Licence importée et activée avec succès');
                                 }
                             } else {
-                                licenseError.value = t('license_file_invalid') || 'Fichier licence invalide. Veuillez reessayer.';
+                                licenseError.value = t('license_file_invalid') || 'Fichier licence invalide. Signature incorrecte.';
                             }
                         } catch (e) {
                             console.error('Erreur import licence:', e);
@@ -3162,48 +3190,8 @@
                             const valid = await window.crypto.subtle.verify({ name: "RSA-PSS", saltLength: 32 }, key, sig, data);
 
                             if (valid) {
-                                // 6. Vérifier que les informations de l'utilisateur correspondent à la licence
-                                // La licence contient "NOM Prénom" dans licObj.owner
-                                const licenseNameParts = licObj.owner.split(' ');
-                                const licenseLastname = licenseNameParts[0]?.trim().toLowerCase() || '';
-                                const licenseFirstname = licenseNameParts.slice(1).join(' ').trim().toLowerCase() || '';
-
-                                // Vérifier avec les infos sauvegardées localement
-                                const savedUserInfoJSON = localStorage.getItem('teachertrack_user_info');
-                                const savedUserInfo = savedUserInfoJSON ? JSON.parse(savedUserInfoJSON) : null;
-
-                                let isUserMatch = false;
-
-                                if (savedUserInfo) {
-                                    // Comparer avec les infos sauvegardées
-                                    const savedLastname = (savedUserInfo.lastname || savedUserInfo.name || '').trim().toLowerCase();
-                                    const savedFirstname = (savedUserInfo.firstname || '').trim().toLowerCase();
-
-                                    isUserMatch = (savedLastname === licenseLastname && savedFirstname === licenseFirstname);
-                                    console.log(`🔍 Vérification utilisateur: "${savedLastname} ${savedFirstname}" vs licence "${licenseLastname} ${licenseFirstname}" = ${isUserMatch}`);
-                                }
-
-                                // Vérifier également avec les données du fichier JSON si disponible
-                                if (!isUserMatch && db.teacherInfo && (db.teacherInfo.lastname || db.teacherInfo.firstname)) {
-                                    const jsonLastname = (db.teacherInfo.lastname || '').trim().toLowerCase();
-                                    const jsonFirstname = (db.teacherInfo.firstname || '').trim().toLowerCase();
-
-                                    isUserMatch = (jsonLastname === licenseLastname && jsonFirstname === licenseFirstname);
-                                    console.log(`🔍 Vérification JSON: "${jsonLastname} ${jsonFirstname}" vs licence "${licenseLastname} ${licenseFirstname}" = ${isUserMatch}`);
-                                }
-
-                                // Si aucune info n'est disponible, on accepte la licence (première activation)
-                                if (!savedUserInfo && (!db.teacherInfo || (!db.teacherInfo.lastname && !db.teacherInfo.firstname))) {
-                                    isUserMatch = true;
-                                    console.log(`🔍 Première activation - pas de vérification utilisateur requise`);
-                                }
-
-                                if (!isUserMatch) {
-                                    // Les informations ne correspondent pas
-                                    licenseError.value = t('license_wrong_user');
-                                    isLicenseValid.value = false;
-                                    return;
-                                }
+                                // 6. Nettoyer les anciennes données de licence avant d'activer la nouvelle
+                                localStorage.removeItem('teachertrack_user_info');
 
                                 // 7. Activer la licence
                                 isLicenseValid.value = true;
@@ -3211,18 +3199,25 @@
                                 licenseInput.value = '';
                                 showLicenseModal.value = false;
 
-                                // Sauvegarder les infos utilisateur pour les vérifications futures
-                                localStorage.setItem('teachertrack_user_info', JSON.stringify({
-                                    name: licenseLastname,
-                                    surname: licenseFirstname,
-                                    timestamp: Date.now()
-                                }));
-
-                                // Sauvegarde Persistante de la licence
+                                // 8. Sauvegarde Persistante de la licence
+                                // NOTE: La validation du propriétaire se fait via validateDataFileOwner()
+                                // lors du chargement d'un fichier de données, pas ici.
                                 const storeKey = 'teachertrack_license_v1';
                                 if (window.Capacitor?.isNativePlatform()) {
-                                    await window.Preferences.set({ key: storeKey, value: inputCode });
+                                    // Android: Sauvegarde dans le système de fichiers (cohérent avec scanForLicenseFile)
+                                    try {
+                                        await window.Filesystem.writeFile({
+                                            path: 'sgc-teachertrack/license.txt',
+                                            data: inputCode,
+                                            directory: window.Directory.Documents,
+                                            encoding: window.Encoding.UTF8
+                                        });
+                                        console.log('📄 Licence sauvegardée dans sgc-teachertrack/license.txt');
+                                    } catch (writeErr) {
+                                        console.warn('Erreur sauvegarde licence Android:', writeErr);
+                                    }
                                 } else {
+                                    // Desktop: localStorage
                                     localStorage.setItem(storeKey, inputCode);
                                 }
 
@@ -4967,22 +4962,10 @@
                     // Watch pour changer de matière quand on change de classe
                     watch(currentClassIndex, updateSubjectForClass);
 
-                    // Watch pour surveiller la validité de la licence en cours d'utilisation
-                    watch(() => isLicenseValid.value, async (isValid) => {
-                        // Si les données sont chargées et que la licence devient invalide
-                        if (!isValid && isDataLoaded.value) {
-                            console.log(`⚠️ Licence invalide détectée - fermeture de la session`);
-                            // Fermer le fichier et revenir à l'écran d'accueil
-                            isDataLoaded.value = false;
-                            db.classes = [];
-                            fileHandle.value = null;
-                            fileName.value = '';
-                            hasUnsavedChanges.value = false;
-                            // Afficher le modal de licence sur l'écran d'accueil
-                            licenseError.value = t('license_wrong_user');
-                            showLicenseModal.value = true;
-                        }
-                    });
+                    // NOTE: L'ancien watch sur isLicenseValid a été supprimé
+                    // La nouvelle logique utilise validateDataFileOwner() qui rejette
+                    // le fichier de données si le propriétaire ne correspond pas,
+                    // au lieu d'invalider la licence.
 
                     return {
                         isDataLoaded, db, currentClassIndex, currentTab, fileName,
