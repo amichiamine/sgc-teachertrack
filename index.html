@@ -4911,6 +4911,16 @@
                             // SI ANDROID : Détecter la plateforme
                             isNative.value = window.Capacitor?.isNativePlatform() || false;
 
+                            // SI ANDROID : Demander les permissions de stockage
+                            if (isNative.value && window.Filesystem) {
+                                try {
+                                    const permStatus = await window.Filesystem.requestPermissions();
+                                    console.log('📱 Permissions stockage:', permStatus);
+                                } catch (permErr) {
+                                    console.warn('⚠️ Permissions non disponibles:', permErr);
+                                }
+                            }
+
                             // Scanner/charger la licence (fichier .txt sur Android ou localStorage sur Desktop)
                             const savedLicense = await scanForLicenseFile();
                             if (savedLicense) {

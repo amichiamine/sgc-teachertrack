@@ -35,9 +35,25 @@
         </provider>
     </application>
 
-    <!-- Permissions -->
+    <!-- Permissions pour compatibilité Android 4.1 (SDK 16) à Android 14+ (SDK 34) -->
     
+    <!-- Permission Internet -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+    
+    <!-- Permissions Stockage classiques (Android 4.1 - Android 9) -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    
+    <!-- Permission pour accès complet au stockage (Android 11+) -->
+    <!-- Note: Nécessite justification pour Google Play Store -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+    
+    <!-- Permissions média granulaires (Android 13+) -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    
+    <!-- Permettre à l'app de préserver les données externes après désinstallation -->
+    <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />
+    
 </manifest>
