@@ -24,13 +24,21 @@ jobs:
           java-version: '17'
 
       - name: Install Dependencies
-        run: npm install
+        run: npm ci
+
+      - name: Debug - Check installed packages
+        run: |
+          ls -la node_modules/@capacitor || echo "No @capacitor folder"
+          npx cap --version || echo "cap command not found"
 
       - name: Build Web Assets
         run: node build.js
 
+      - name: Debug - Check www folder
+        run: ls -la www/
+
       - name: Sync Capacitor
-        run: npx cap sync android
+        run: npx cap sync android --verbose
 
       - name: Build APK (Debug)
         run: |
