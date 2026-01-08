@@ -178,7 +178,10 @@
             window.Directory = Directory;
             window.Encoding = Encoding;
             window.Preferences = Preferences;
+            window.CapacitorReady = true;
             console.log("✅ Capacitor chargé.");
+            // Signaler que Capacitor est prêt
+            window.dispatchEvent(new CustomEvent('capacitor-ready'));
         `;
                 document.head.appendChild(mod);
             } else {
@@ -269,7 +272,7 @@
                     </button>
 
                     <!-- Bouton Nouveau -->
-                    <button @click="createNewFile" :disabled="!isLicenseValid"
+                    <button @click="createNewSpace" :disabled="!isLicenseValid"
                         :class="['w-full flex items-center p-4 rounded-xl border transition group', !isLicenseValid ? 'bg-slate-100 opacity-50 cursor-not-allowed' : 'bg-slate-50 hover:bg-slate-100 border-slate-200']">
                         <div class="w-10 h-10 rounded-full flex items-center justify-center ms-3"
                             :class="!isLicenseValid ? 'bg-slate-200' : 'bg-emerald-100 group-hover:bg-emerald-600'">
@@ -4055,6 +4058,11 @@
                         };
 
                         try {
+                            // Vérifier que Filesystem est disponible
+                            if (!window.Filesystem || !window.Filesystem.writeFile) {
+                                throw new Error('Filesystem non initialisé. Veuillez redémarrer l\'application.');
+                            }
+
                             await window.Filesystem.writeFile({
                                 path: fullPath,
                                 data: JSON.stringify(emptyDb, null, 2),
@@ -4898,9 +4906,8 @@
                     };
 
                     onMounted(async () => {
-                        // Petit délai pour laisser le temps au script d'injection de charger Capacitor
-                        setTimeout(async () => {
-
+                        // Fonction d'initialisation principale
+                        const initApp = async () => {
                             // SI ANDROID : Détecter la plateforme
                             isNative.value = window.Capacitor?.isNativePlatform() || false;
 
@@ -4925,17 +4932,42 @@
                                 await loadRecentFiles();
                             }
 
-                        }, 100); // 100ms de pause suffisent
+                            console.log('TeacherTrack initialisé (Mode Hybride)');
+                        };
+
+                        // Attendre que Capacitor soit prêt (si en mode natif)
+                        if (window.CapacitorReady) {
+                            // Déjà prêt, initialiser immédiatement
+                            await initApp();
+                        } else if (window.Capacitor?.isNativePlatform && !window.CapacitorReady) {
+                            // Attendre l'événement capacitor-ready
+                            window.addEventListener('capacitor-ready', async () => {
+                                console.log('📱 Capacitor ready, initialisation...');
+                                await initApp();
+                            }, { once: true });
+
+                            // Fallback: si après 2 secondes toujours pas prêt, initialiser quand même
+                            setTimeout(async () => {
+                                if (!window.CapacitorReady) {
+                                    console.warn('⚠️ Capacitor timeout, tentative d\'initialisation...');
+                                    await initApp();
+                                }
+                            }, 2000);
+                        } else {
+                            // Mode Desktop, pas besoin d'attendre
+                            await initApp();
+                        }
 
                         // Handler pour eviter l'ecran blanc lors du retour a l'app
-                        document.addEventListener('visibilitychange', () => {
+                        document.addEventListener('visibilitychange', async () => {
                             if (document.visibilityState === 'visible') {
                                 console.log('📱 App resumed - visibility restored');
-                                // Force re-render si necessaire
+                                // Forcer un re-render en touchant une variable réactive
+                                if (isNative.value && !isDataLoaded.value) {
+                                    await loadSpaces();
+                                }
                             }
                         });
-
-                        console.log('TeacherTrack initialisé (Mode Hybride)');
                     });
 
                     // Watch pour détecter les modifications non sauvegardées
