@@ -1,0 +1,7 @@
+{
+  "appId": "com.teachertrack.app",
+  "appName": "SGC-TeacherTrack",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "linuxAndroidStudioPath": "/opt/android-studio/bin/studio.sh"
+}

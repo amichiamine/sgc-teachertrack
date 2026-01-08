@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Fond: Carré arrondi Teal -->
+  <rect x="0" y="0" width="512" height="512" rx="100" fill="#0f766e"/>
+  
+  <!-- Icône: Contour clipboard/document -->
+  <path d="M140 100 H372 V430 H140 Z" fill="none" stroke="#ffffff" stroke-width="32" stroke-linejoin="round"/>
+  
+  <!-- Icône: Clip du haut -->
+  <path d="M200 100 V70 A30 30 0 0 1 230 40 H282 A30 30 0 0 1 312 70 V100" fill="none" stroke="#ffffff" stroke-width="32"/>
+  
+  <!-- Icône: Coche de validation -->
+  <path d="M190 280 L240 330 L320 230" fill="none" stroke="#ffffff" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Icône: Lignes de texte -->
+  <line x1="190" y1="180" x2="320" y2="180" stroke="#ffffff" stroke-width="20" stroke-linecap="round"/>
+</svg>
