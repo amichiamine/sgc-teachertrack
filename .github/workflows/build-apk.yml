@@ -38,7 +38,7 @@ jobs:
         run: ls -la www/
 
       - name: Sync Capacitor
-        run: npx cap sync android --verbose
+        run: npx cap sync android
 
       - name: Build APK (Debug)
         run: |
