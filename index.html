@@ -151,41 +151,12 @@
             const isApp = window.location.protocol !== 'file:';
 
             if (isApp) {
-                console.log("📱 Mode APK détecté : Injection de Capacitor...");
-
-                // A. Injecter l'Import Map pour Capacitor
-                const im = document.createElement('script');
-                im.type = 'importmap';
-                im.textContent = JSON.stringify({
-                    "imports": {
-                        "@capacitor/core": "./vendor/capacitor-core.js",
-                        "@capacitor/filesystem": "./vendor/capacitor-filesystem.js",
-                        "@capacitor/preferences": "./vendor/capacitor-preferences.js"
-                    }
-                });
-                document.head.appendChild(im);
-
-                // B. Injecter le module Capacitor
-                const mod = document.createElement('script');
-                mod.type = 'module';
-                mod.textContent = `
-            import { Capacitor } from '@capacitor/core';
-            import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
-            import { Preferences } from '@capacitor/preferences';
-
-            window.Capacitor = Capacitor;
-            window.Filesystem = Filesystem;
-            window.Directory = Directory;
-            window.Encoding = Encoding;
-            window.Preferences = Preferences;
-            window.CapacitorReady = true;
-            console.log("✅ Capacitor chargé.");
-            // Signaler que Capacitor est prêt
-            window.dispatchEvent(new CustomEvent('capacitor-ready'));
-        `;
-                document.head.appendChild(mod);
+                console.log("📱 Mode APK détecté : Chargement de Capacitor...");
+                // Les modules Capacitor seront chargés via le script en bas de page
             } else {
                 console.log("💻 Mode Desktop détecté : Capacitor désactivé (Utilisation File System API).");
+                // Marquer comme déjà prêt pour éviter l'attente
+                window.CapacitorReady = true;
             }
         })();
     </script>
@@ -1975,7 +1946,8 @@
                     </div>
 
                     <div v-if="licenseError" class="p-3 bg-red-50 border border-red-200 rounded-lg">
-                        <p class="text-sm text-red-600"><i class="fas fa-exclamation-triangle ms-1"></i> {{ licenseError }}</p>
+                        <p class="text-sm text-red-600"><i class="fas fa-exclamation-triangle ms-1"></i> {{ licenseError
+                            }}</p>
                     </div>
 
                     <button @click="cancelLicenseModal"
@@ -5056,6 +5028,20 @@
                         console.log('[PWA] Échec de l\'enregistrement du Service Worker:', error);
                     });
             });
+        }
+    </script>
+
+    <!-- Chargement Capacitor pour mode APK uniquement -->
+    <script>
+        if (window.location.protocol !== 'file:') {
+            // Mode APK: charger le module Capacitor
+            const script = document.createElement('script');
+            script.type = 'module';
+            script.src = './vendor/capacitor-loader.js';
+            script.onerror = function () {
+                console.error('❌ Erreur chargement capacitor-loader.js');
+            };
+            document.body.appendChild(script);
         }
     </script>
 
