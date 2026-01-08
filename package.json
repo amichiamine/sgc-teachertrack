@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "main": "sw.js",
   "scripts": {
+    "build": "node build.js",
+    "sync": "node build.js && npx cap sync android",
+    "apk": "node build.js && npx cap sync android && cd android && ./gradlew assembleDebug",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
