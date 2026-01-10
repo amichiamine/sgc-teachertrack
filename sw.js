@@ -1,5 +1,5 @@
 // Service Worker pour TeacherTrack PWA
-const CACHE_NAME = 'teachertrack-v1';
+const CACHE_NAME = 'teachertrack-v2';
 const STATIC_ASSETS = [
     './',
     './index.html',
