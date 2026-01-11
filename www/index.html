@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="TeacherTrack - Gestion de classe, suivi des élèves et des notes">
     <meta name="theme-color" content="#0f766e">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="SGC-TeacherTrack">
@@ -1914,7 +1915,8 @@
                     <!-- Option 1: Saisie manuelle -->
                     <div class="border border-slate-200 rounded-xl p-4">
                         <label class="block text-sm font-medium text-slate-700 mb-2">
-                            <i class="fas fa-keyboard ms-1 text-indigo-500"></i> {{ t('license_manual_entry') || 'Entrer la cle manuellement' }}
+                            <i class="fas fa-keyboard ms-1 text-indigo-500"></i> {{ t('license_manual_entry') || 'Entrer
+                            la cle manuellement' }}
                         </label>
                         <input v-model="licenseInput" type="text" :placeholder="t('license_placeholder')"
                             class="w-full px-4 py-3 border border-slate-300 rounded-lg text-center font-mono text-sm tracking-wider uppercase focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200" />
@@ -1943,7 +1945,8 @@
                             <span class="text-purple-700 font-medium">{{ t('browse') || 'Parcourir...' }}</span>
                             <input type="file" @change="importLicenseFile" accept=".txt" class="hidden">
                         </label>
-                        <p class="text-xs text-slate-400 mt-2 text-center">{{ t('license_file_hint') || 'Le fichier licence vous a ete envoye par email' }}</p>
+                        <p class="text-xs text-slate-400 mt-2 text-center">{{ t('license_file_hint') || 'Le fichier
+                            licence vous a ete envoye par email' }}</p>
                     </div>
 
                     <div v-if="licenseError" class="p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -3096,11 +3099,20 @@
                     // Valider que le fichier de donnees appartient au proprietaire de la licence
                     // RETOURNE: true si OK, false si rejete
                     const validateDataFileOwner = (data) => {
+                        console.log('🔐 validateDataFileOwner appelée');
+                        console.log('  - isLicenseValid:', isLicenseValid.value);
+                        console.log('  - licenseOwner:', licenseOwner.value);
+                        console.log('  - data.teacherInfo:', data?.teacherInfo);
+
                         // Si pas de licence valide, pas de verification
-                        if (!isLicenseValid.value || !licenseOwner.value) return true;
+                        if (!isLicenseValid.value || !licenseOwner.value) {
+                            console.log('  → Pas de licence ou proprietaire vide, acceptation automatique');
+                            return true;
+                        }
 
                         // Si le fichier n'a pas d'info enseignant, on accepte (nouveau fichier)
                         if (!data.teacherInfo || (!data.teacherInfo.lastname && !data.teacherInfo.firstname)) {
+                            console.log('  → Pas d\'info enseignant dans le fichier, acceptation');
                             return true;
                         }
 
@@ -3108,13 +3120,18 @@
                         const fileOwner = `${data.teacherInfo.lastname || ''} ${data.teacherInfo.firstname || ''}`.trim().toLowerCase();
                         const licenseOwnerNorm = licenseOwner.value.trim().toLowerCase();
 
+                        console.log('  - fileOwner normalisé:', fileOwner);
+                        console.log('  - licenseOwner normalisé:', licenseOwnerNorm);
+
                         // Comparer
                         if (fileOwner && fileOwner !== licenseOwnerNorm) {
                             const fileOwnerDisplay = `${data.teacherInfo.lastname || ''} ${data.teacherInfo.firstname || ''}`.trim();
+                            console.log('  → REJET: proprietaire différent!');
                             alert(`❌ Ce fichier appartient a "${fileOwnerDisplay}".\n\nVotre licence est enregistree pour "${licenseOwner.value}".\n\nVeuillez ouvrir un fichier vous appartenant.`);
                             return false; // REJETER LE FICHIER
                         }
 
+                        console.log('  → OK: proprietaire correspondant');
                         return true; // OK
                     };
 
